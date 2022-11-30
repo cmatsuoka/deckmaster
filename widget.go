@@ -17,7 +17,8 @@ import (
 
 var (
 	// DefaultColor is the standard color for text rendering.
-	DefaultColor = color.RGBA{255, 255, 255, 255}
+	DefaultColor  = color.RGBA{255, 255, 255, 255}
+	stateRegistry = NewWidgetStateRegistry()
 )
 
 // Widget is an interface implemented by all available widgets.
@@ -121,6 +122,10 @@ func NewWidget(dev *streamdeck.Device, base string, kc KeyConfig, bg image.Image
 
 	case "command":
 		return NewCommandWidget(bw, kc.Widget), nil
+
+	case "countdown":
+		sw := NewStatefulWidget(bw)
+		return NewCountdownWidget(sw, kc.Widget), nil
 
 	case "weather":
 		return NewWeatherWidget(bw, kc.Widget)
