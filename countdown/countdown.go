@@ -14,7 +14,7 @@ type Countdown struct {
 	expired bool
 }
 
-func New(seconds, rate int) *Countdown {
+func New(seconds, rate int, ch chan interface{}, data interface{}) *Countdown {
 	c := &Countdown{
 		value:   time.Duration(seconds) * time.Second,
 		elapsed: 0,
@@ -24,7 +24,7 @@ func New(seconds, rate int) *Countdown {
 		expired: false,
 	}
 
-	go c.update()
+	go c.update(ch, data)
 
 	return c
 }
@@ -67,7 +67,7 @@ func (c *Countdown) Expired() bool {
 	return c.expired
 }
 
-func (c *Countdown) update() {
+func (c *Countdown) update(ch chan interface{}, data interface{}) {
 	for !c.expired {
 		time.Sleep(c.period)
 		if !c.paused {
@@ -77,4 +77,5 @@ func (c *Countdown) update() {
 			}
 		}
 	}
+	ch <- data
 }

@@ -25,7 +25,7 @@ type Deck struct {
 }
 
 // LoadDeck loads a deck configuration.
-func LoadDeck(dev *streamdeck.Device, base string, deck string) (*Deck, error) {
+func LoadDeck(dev *streamdeck.Device, base string, deck string, wch chan interface{}) (*Deck, error) {
 	path, err := expandPath(base, deck)
 	if err != nil {
 		return nil, err
@@ -60,12 +60,12 @@ func LoadDeck(dev *streamdeck.Device, base string, deck string) (*Deck, error) {
 
 		var w Widget
 		if k, found := keyMap[i]; found {
-			w, err = NewWidget(dev, filepath.Dir(path), k, bg)
+			w, err = NewWidget(dev, filepath.Dir(path), k, bg, wch)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			w = NewBaseWidget(dev, filepath.Dir(path), i, nil, nil, bg)
+			w = NewBaseWidget(dev, filepath.Dir(path), i, nil, nil, bg, wch)
 		}
 
 		d.Widgets = append(d.Widgets, w)
@@ -206,7 +206,7 @@ func executeCommand(cmd string) {
 }
 
 // triggerAction triggers an action.
-func (d *Deck) triggerAction(dev *streamdeck.Device, index uint8, hold bool) {
+func (d *Deck) triggerAction(dev *streamdeck.Device, index uint8, wch chan interface{}, hold bool) {
 	for _, w := range d.Widgets {
 		if w.Key() != index {
 			continue
@@ -225,7 +225,7 @@ func (d *Deck) triggerAction(dev *streamdeck.Device, index uint8, hold bool) {
 		}
 
 		if a.Deck != "" {
-			d, err := LoadDeck(dev, filepath.Dir(d.File), a.Deck)
+			d, err := LoadDeck(dev, filepath.Dir(d.File), a.Deck, wch)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "Can't load deck:", err)
 				return

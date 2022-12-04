@@ -41,6 +41,7 @@ type BaseWidget struct {
 	background image.Image
 	lastUpdate time.Time
 	interval   time.Duration
+	wch        chan interface{}
 }
 
 // Key returns the key a widget is mapped to.
@@ -80,7 +81,7 @@ func (w *BaseWidget) Update() error {
 }
 
 // NewBaseWidget returns a new BaseWidget.
-func NewBaseWidget(dev *streamdeck.Device, base string, index uint8, action, actionHold *ActionConfig, bg image.Image) *BaseWidget {
+func NewBaseWidget(dev *streamdeck.Device, base string, index uint8, action, actionHold *ActionConfig, bg image.Image, wch chan interface{}) *BaseWidget {
 	return &BaseWidget{
 		base:       base,
 		key:        index,
@@ -88,12 +89,13 @@ func NewBaseWidget(dev *streamdeck.Device, base string, index uint8, action, act
 		actionHold: actionHold,
 		dev:        dev,
 		background: bg,
+		wch:        wch,
 	}
 }
 
 // NewWidget initializes a widget.
-func NewWidget(dev *streamdeck.Device, base string, kc KeyConfig, bg image.Image) (Widget, error) {
-	bw := NewBaseWidget(dev, base, kc.Index, kc.Action, kc.ActionHold, bg)
+func NewWidget(dev *streamdeck.Device, base string, kc KeyConfig, bg image.Image, wch chan interface{}) (Widget, error) {
+	bw := NewBaseWidget(dev, base, kc.Index, kc.Action, kc.ActionHold, bg, wch)
 
 	switch kc.Widget.ID {
 	case "button":

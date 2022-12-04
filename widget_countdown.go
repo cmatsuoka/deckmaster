@@ -18,8 +18,8 @@ type CountdownWidgetState struct {
 	timer *countdown.Countdown
 }
 
-func NewCountdownWidgetState(seconds, rate int) CountdownWidgetState {
-	timer := countdown.New(seconds, rate)
+func NewCountdownWidgetState(seconds, rate int, sw *StatefulWidget) CountdownWidgetState {
+	timer := countdown.New(seconds, rate, sw.wch, sw)
 	return CountdownWidgetState{
 		timer: timer,
 	}
@@ -61,7 +61,7 @@ func NewCountdownWidget(sw *StatefulWidget, opts WidgetConfig) *CountdownWidget 
 	var cstate CountdownWidgetState
 	state, err := stateRegistry.Recover(state_id)
 	if err != nil {
-		cstate = NewCountdownWidgetState(int(seconds), 4)
+		cstate = NewCountdownWidgetState(int(seconds), 4, sw)
 		stateRegistry.Register(state_id, cstate)
 		verbosef("Create new state")
 	} else {

@@ -81,7 +81,7 @@ func expandPath(base, path string) (string, error) {
 	return filepath.Abs(path)
 }
 
-func eventLoop(dev *streamdeck.Device, tch chan interface{}) error {
+func eventLoop(dev *streamdeck.Device, tch chan interface{}, wch chan interface{}) error {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
@@ -118,7 +118,7 @@ func eventLoop(dev *streamdeck.Device, tch chan interface{}) error {
 				// key was released
 				if time.Since(keyTimestamps[k.Index]) < longPressDuration {
 					verbosef("Triggering short action for key %d", k.Index)
-					deck.triggerAction(dev, k.Index, false)
+					deck.triggerAction(dev, k.Index, wch, false)
 				}
 			}
 			if !state && k.Pressed {
@@ -130,7 +130,7 @@ func eventLoop(dev *streamdeck.Device, tch chan interface{}) error {
 					if state, ok := keyStates.Load(k.Index); ok && state.(bool) {
 						// key still pressed
 						verbosef("Triggering long action for key %d", k.Index)
-						deck.triggerAction(dev, k.Index, true)
+						deck.triggerAction(dev, k.Index, wch, true)
 					}
 				}()
 			}
@@ -145,13 +145,21 @@ func eventLoop(dev *streamdeck.Device, tch chan interface{}) error {
 				handleActiveWindowChanged(dev, event)
 			}
 
+		case w := <-wch:
+			switch w.(type) {
+			case CountdownWidget:
+				cw := w.(CountdownWidget)
+				verbosef("Countdown timer %q expired", cw.state_id)
+				deck.triggerAction(dev, cw.key, wch, false)
+			}
+
 		case err := <-shutdown:
 			return err
 
 		case <-hup:
 			verbosef("Received SIGHUP, reloading configuration...")
 
-			nd, err := LoadDeck(dev, ".", deck.File)
+			nd, err := LoadDeck(dev, ".", deck.File, wch)
 			if err != nil {
 				verbosef("The new configuration is not valid, keeping the current one.")
 				fmt.Fprintf(os.Stderr, "Configuration Error: %s\n", err)
@@ -275,14 +283,17 @@ func run() error {
 		defer keyboard.Close() //nolint:errcheck
 	}
 
+	// a channel to receive arbitrary data from widgets
+	wch := make(chan interface{})
+
 	// load deck
-	deck, err = LoadDeck(dev, ".", *deckFile)
+	deck, err = LoadDeck(dev, ".", *deckFile, wch)
 	if err != nil {
 		return fmt.Errorf("Can't load deck: %s", err)
 	}
 	deck.updateWidgets()
 
-	return eventLoop(dev, tch)
+	return eventLoop(dev, tch, wch)
 }
 
 func main() {
